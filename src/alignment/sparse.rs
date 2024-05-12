@@ -36,7 +36,7 @@ use std::hash::BuildHasherDefault;
 pub type HashMapFx<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher>>;
 
 /// Result of a sparse alignment
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub struct SparseAlignmentResult {
     /// LCSk++ path, represented as vector of indices into the input matches vector.
     pub path: Vec<usize>,
@@ -90,15 +90,13 @@ pub fn lcskpp(matches: &[(u32, u32)], k: usize) -> SparseAlignmentResult {
         n = max(n, x + k);
         n = max(n, y + k);
     }
-    events.sort();
+    events.sort_unstable();
 
     let mut max_col_dp: MaxBitTree<(u32, u32)> = MaxBitTree::new(n as usize);
     let mut dp: Vec<(u32, i32)> = Vec::with_capacity(events.len());
     let mut best_dp = (k, 0);
 
-    for _ in 0..events.len() {
-        dp.push((0, 0));
-    }
+    dp.resize(events.len(), (0, 0));
 
     for ev in events {
         let p = (ev.2 % matches.len() as u32) as usize;
@@ -221,15 +219,13 @@ pub fn sdpkpp(
         n = max(n, x + k);
         n = max(n, y + k);
     }
-    events.sort();
+    events.sort_unstable();
 
     let mut max_col_dp: MaxBitTree<PrevPtr> = MaxBitTree::new(n as usize);
     let mut dp: Vec<(u32, i32)> = Vec::with_capacity(events.len());
     let mut best_dp = (k, 0);
 
-    for _ in 0..events.len() {
-        dp.push((0, 0));
-    }
+    dp.resize(events.len(), (0, 0));
 
     for ev in events {
         let p = (ev.2 % matches.len() as u32) as usize;
@@ -302,14 +298,11 @@ pub fn sdpkpp_union_lcskpp_path(
     }
     let lcskpp_al = lcskpp(matches, k);
     let sdpkpp_al = sdpkpp(matches, k, match_score, gap_open, gap_extend);
-    let pre_lcskpp = match lcskpp_al.path.binary_search(&sdpkpp_al.path[0]) {
-        Ok(ind) => ind,
-        Err(_) => 0,
-    };
-    let post_lcskpp = match lcskpp_al
+    let pre_lcskpp = lcskpp_al
         .path
-        .binary_search(&sdpkpp_al.path.last().unwrap())
-    {
+        .binary_search(&sdpkpp_al.path[0])
+        .unwrap_or(0);
+    let post_lcskpp = match lcskpp_al.path.binary_search(sdpkpp_al.path.last().unwrap()) {
         Ok(ind) => ind + 1,
         Err(_) => lcskpp_al.path.len(),
     };
@@ -338,7 +331,7 @@ pub fn find_kmer_matches(seq1: &[u8], seq2: &[u8], k: usize) -> Vec<(u32, u32)> 
         let set = hash_kmers(seq1, k);
         find_kmer_matches_seq1_hashed(&set, seq2, k)
     } else {
-        let set = hash_kmers(&seq2, k);
+        let set = hash_kmers(seq2, k);
         find_kmer_matches_seq2_hashed(seq1, &set, k)
     }
 }
@@ -375,7 +368,7 @@ pub fn find_kmer_matches_seq1_hashed(
         }
     }
 
-    matches.sort();
+    matches.sort_unstable();
     matches
 }
 
@@ -398,7 +391,7 @@ pub fn find_kmer_matches_seq2_hashed(
         }
     }
 
-    matches.sort();
+    matches.sort_unstable();
     matches
 }
 
@@ -451,7 +444,7 @@ pub fn expand_kmer_matches(
         last_match_along_diagonal.insert(diag, (this_match.0 as i32, this_match.1 as i32));
     }
 
-    left_expanded_matches.sort();
+    left_expanded_matches.sort_unstable();
     let mut expanded_matches = left_expanded_matches.clone();
     left_expanded_matches.reverse();
 
@@ -492,7 +485,7 @@ pub fn expand_kmer_matches(
 
         next_match_along_diagonal.insert(diag, this_match);
     }
-    expanded_matches.sort();
+    expanded_matches.sort_unstable();
     expanded_matches
 }
 
@@ -606,12 +599,12 @@ mod sparse_alignment {
     // TRs is arbitrary, and way the implementation breaks ties may introduce
     // a gap while maintaining the same score.
     // The SDP code with gap open & extend penalties should resolve this.
-    const QUERY_REPEAT: &'static [u8] = b"CCTCCCATCTCCACCCACCCTATCCAACCCTGGGGTGGCAGGTCATGAGTGA\
+    const QUERY_REPEAT: &[u8] = b"CCTCCCATCTCCACCCACCCTATCCAACCCTGGGGTGGCAGGTCATGAGTGA\
 CAGCCCCAAGGACACCAAGGGATGAAGCTTCTCCTGTGCTGAGATCCTTCTCGGACTTTCTGAGAGGCCACGCAGAACAGGAGGCCCCATCTCC\
 CGTTCTTACTCAGAAGCTGTCAGCAGGGCTGGGCTCAAGATGAACCCGTGGCCGGCCCCACTCCCCAGCTCTTGCTTCAGGGCCTCACGTTTCG\
 CCCCCTGAGGCCTGGGGGCTCCGTCCTCACGGCTGGAGGGGCTCTCAGAACATCTGGTG";
 
-    const TARGET_REPEAT: &'static [u8] = b"CCTCCCATCTCCACCCACCCTATCCAACCCTGGGGTGGCAG\
+    const TARGET_REPEAT: &[u8] = b"CCTCCCATCTCCACCCACCCTATCCAACCCTGGGGTGGCAG\
 GTCATGAGTGACAGCCCCAAGGACACCAAGGGATGAAGCTTCTCCTGTGCTGAGATCCTTCTCGGACTTTCTGAGAGGCCACGC\
 AGAACAGGAGGCCCCATCTCCCGTTCTTACTCAGAAGCTGTCAGCAGGGCTGGGCTCAAGATGAACCCGTGGCCGGCCCCACTC\
 CCCAGCTCTTGCTTCAGGGCCTCACGTTTCGCCCCCTGAGGCCTGGGGGCTCCGTCCTCACGGCTGGAGGGGCTCTCAGAACAT\

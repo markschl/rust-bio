@@ -27,12 +27,17 @@ pub mod rna;
 pub type SymbolRanks = VecMap<u8>;
 
 /// Representation of an alphabet.
+#[derive(Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Alphabet {
     pub symbols: BitSet,
 }
 
 impl Alphabet {
     /// Create new alphabet from given symbols.
+    ///
+    /// Complexity: O(n), where n is the number of symbols in the alphabet.
+    ///
+    /// # Example
     ///
     /// ```
     /// use bio::alphabets;
@@ -55,6 +60,10 @@ impl Alphabet {
 
     /// Insert symbol into alphabet.
     ///
+    /// Complexity: O(1)
+    ///
+    /// # Example
+    ///
     /// ```
     /// use bio::alphabets;
     ///
@@ -68,6 +77,10 @@ impl Alphabet {
     }
 
     /// Check if given text is a word over the alphabet.
+    ///
+    /// Complexity: O(n), where n is the length of the text.
+    ///
+    /// # Example
     ///
     /// ```
     /// use bio::alphabets;
@@ -87,6 +100,10 @@ impl Alphabet {
 
     /// Return lexicographically maximal symbol.
     ///
+    /// Complexity: O(n), where n is the number of symbols in the alphabet.
+    ///
+    /// # Example
+    ///
     /// ```
     /// use bio::alphabets;
     ///
@@ -104,6 +121,10 @@ impl Alphabet {
     /// Upper and lower case representations of the same character
     /// are counted as distinct characters.
     ///
+    /// Complexity: O(n), where n is the number of symbols in the alphabet.
+    ///
+    /// # Example
+    ///
     /// ```
     /// use bio::alphabets;
     ///
@@ -116,6 +137,10 @@ impl Alphabet {
 
     /// Is this alphabet empty?
     ///
+    /// Complexity: O(n), where n is the number of symbols in the alphabet.
+    ///
+    /// # Example
+    ///
     /// ```
     /// use bio::alphabets;
     ///
@@ -126,6 +151,60 @@ impl Alphabet {
     /// ```
     pub fn is_empty(&self) -> bool {
         self.symbols.is_empty()
+    }
+
+    /// Return a new alphabet taking the intersect between this and other.
+    ///
+    /// # Example
+    /// ```
+    /// use bio::alphabets;
+    ///
+    /// let alpha_a = alphabets::Alphabet::new(b"acgtACGT");
+    /// let alpha_b = alphabets::Alphabet::new(b"atcgMVP");
+    /// let intersect_alpha = alpha_a.intersection(&alpha_b);
+    ///
+    /// assert_eq!(intersect_alpha, alphabets::Alphabet::new(b"atcg"));
+    /// ```
+    pub fn intersection(&self, other: &Alphabet) -> Self {
+        return Alphabet {
+            symbols: self.symbols.intersection(&other.symbols).collect(),
+        };
+    }
+
+    /// Return a new alphabet taking the difference between this and other.
+    ///
+    /// # Example
+    /// ```
+    /// use bio::alphabets;
+    ///
+    /// let dna_alphabet = alphabets::Alphabet::new(b"acgtACGT");
+    /// let dna_alphabet_upper = alphabets::Alphabet::new(b"ACGT");
+    /// let dna_lower = dna_alphabet.difference(&dna_alphabet_upper);
+    ///
+    /// assert_eq!(dna_lower, alphabets::Alphabet::new(b"atcg"));
+    /// ```
+    pub fn difference(&self, other: &Alphabet) -> Self {
+        return Alphabet {
+            symbols: self.symbols.difference(&other.symbols).collect(),
+        };
+    }
+
+    /// Return a new alphabet taking the union between this and other.
+    ///
+    /// # Example
+    /// ```
+    /// use bio::alphabets;
+    ///
+    /// let dna_alphabet = alphabets::Alphabet::new(b"ATCG");
+    /// let tokenize_alpha = alphabets::Alphabet::new(b"?|");
+    /// let alpha = dna_alphabet.union(&tokenize_alpha);
+    ///
+    /// assert_eq!(alpha, alphabets::Alphabet::new(b"ATCG?|"));
+    /// ```
+    pub fn union(&self, other: &Alphabet) -> Self {
+        return Alphabet {
+            symbols: self.symbols.union(&other.symbols).collect(),
+        };
     }
 }
 
@@ -138,13 +217,17 @@ impl Alphabet {
 ///
 /// `RankTransform` can be used in to perform bit encoding for texts over a
 /// given alphabet via `bio::data_structures::bitenc`.
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub struct RankTransform {
     pub ranks: SymbolRanks,
 }
 
 impl RankTransform {
     /// Construct a new `RankTransform`.
+    ///
+    /// Complexity: O(n), where n is the number of symbols in the alphabet.
+    ///
+    /// # Example
     ///
     /// ```
     /// use bio::alphabets;
@@ -165,6 +248,10 @@ impl RankTransform {
     ///
     /// This method panics for characters not contained in the alphabet.
     ///
+    /// Complexity: O(1)
+    ///
+    /// # Example
+    ///
     /// ```
     /// use bio::alphabets;
     ///
@@ -177,7 +264,11 @@ impl RankTransform {
         *self.ranks.get(a as usize).expect("Unexpected character.")
     }
 
-    /// Transform a given `text`.
+    /// Transform a given `text` into a vector of rank values.
+    ///
+    /// Complexity: O(n), where n is the length of the text.
+    ///
+    /// # Example
     ///
     /// ```
     /// use bio::alphabets;
@@ -207,6 +298,10 @@ impl RankTransform {
     ///
     /// If q is larger than usize::BITS / log2(|A|), this method fails with an assertion.
     ///
+    /// Complexity: O(n), where n is the length of the text.
+    ///
+    /// # Example
+    ///
     /// ```
     /// use bio::alphabets;
     ///
@@ -231,7 +326,7 @@ impl RankTransform {
             text: text.into_iter(),
             ranks: self,
             bits,
-            mask: (1 << (q * bits)) - 1,
+            mask: 1usize.checked_shl(q * bits).unwrap_or(0).wrapping_sub(1),
             qgram: 0,
         };
 
@@ -243,6 +338,10 @@ impl RankTransform {
     }
 
     /// Restore alphabet from transform.
+    ///
+    /// Complexity: O(n), where n is the number of symbols in the alphabet.
+    ///
+    /// # Example
     ///
     /// ```
     /// use bio::alphabets;
@@ -256,9 +355,36 @@ impl RankTransform {
         symbols.extend(self.ranks.keys());
         Alphabet { symbols }
     }
+
+    /// Compute the number of bits required to encode the largest rank value.
+    ///
+    /// For example, the alphabet `b"ACGT"` with 4 symbols has the maximal rank
+    /// 3, which can be encoded in 2 bits.
+    ///
+    /// This value can be used to create a `data_structures::bitenc::BitEnc`
+    /// bit encoding tailored to the given alphabet.
+    ///
+    /// Complexity: O(n), where n is the number of symbols in the alphabet.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use bio::alphabets;
+    ///
+    /// let dna_alphabet = alphabets::Alphabet::new(b"ACGT");
+    /// let dna_ranks = alphabets::RankTransform::new(&dna_alphabet);
+    /// assert_eq!(dna_ranks.get_width(), 2);
+    /// let dna_n_alphabet = alphabets::Alphabet::new(b"ACGTN");
+    /// let dna_n_ranks = alphabets::RankTransform::new(&dna_n_alphabet);
+    /// assert_eq!(dna_n_ranks.get_width(), 3);
+    /// ```
+    pub fn get_width(&self) -> usize {
+        (self.ranks.len() as f32).log2().ceil() as usize
+    }
 }
 
 /// Iterator over q-grams.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct QGrams<'a, C, T>
 where
     C: Borrow<u8>,
@@ -303,13 +429,33 @@ where
     }
 }
 
-#[cfg(tests)]
-mod tests {
-    #[test]
-    fn test_serde() {
-        use serde::{Deserialize, Serialize};
-        fn impls_serde_traits<S: Serialize + Deserialize>() {}
+/// Returns the english ascii lower case alphabet.
+pub fn english_ascii_lower_alphabet() -> Alphabet {
+    Alphabet::new(&b"abcdefghijklmnopqrstuvwxyz"[..])
+}
 
-        impls_serde_traits::<RankTransform>();
+/// Returns the english ascii upper case alphabet.
+pub fn english_ascii_upper_alphabet() -> Alphabet {
+    Alphabet::new(&b"ABCDEFGHIJKLMNOPQRSTUVWXYZ"[..])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_alphabet_eq() {
+        assert_eq!(Alphabet::new(b"ATCG"), Alphabet::new(b"ATCG"));
+        assert_eq!(Alphabet::new(b"ATCG"), Alphabet::new(b"TAGC"));
+        assert_ne!(Alphabet::new(b"ATCG"), Alphabet::new(b"ATC"));
+    }
+
+    /// When `q * bits == usize::BITS`, make sure that `1<<(1*bits)` does not overflow.
+    #[test]
+    fn test_qgram_shiftleft_overflow() {
+        let alphabet = Alphabet::new(b"ACTG");
+        let transform = RankTransform::new(&alphabet);
+        let text = b"ACTG".repeat(100);
+        transform.qgrams(usize::BITS / 2, text);
     }
 }

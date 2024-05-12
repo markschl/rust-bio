@@ -9,7 +9,7 @@ use bio::pattern_matching::kmp::KMP;
 use bio::pattern_matching::shift_and::ShiftAnd;
 use test::Bencher;
 
-static TEXT: &'static [u8] = b"GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGC\
+static TEXT: &[u8] = b"GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGC\
 ATTTGGTATTTTCGTCTGGGGGGTATGCACGCGATAGCATTGCGAGACGCTGGAGCCGGAGCACCCTATGTCGCAGTAT\
 CTGTCTTTGATTCCTGCCTCATCCTATTATTTATCGCACCTACGTTCAATATTACAGGCGAACATACTTACTAAAGTGT\
 GTTAATTAATTAATGCTTGTAGGACATAATAATAACAATTGAATGTCTGCACAGCCACTTTCCACACAGACATCATAAC\
@@ -221,14 +221,14 @@ ACCATCCTCCGTGAAATCAATATCCCGCACAAGAGTGCTACTCTCCTCGCTCCGGGCCCATAACACTTGGGGGTAGCTA\
 AAGTGAACTGTATCCGACATCTGGTTCCTACTTCAGGGTCATAAAGCCTAAATAGCCCACACGTTCCCCTTAAATAAGA\
 CATCACGATG";
 
-static PATTERN: &'static [u8] = b"GCGCGTACACACCGCCCG";
+static PATTERN: &[u8] = b"GCGCGTACACACCGCCCG";
 
 #[bench]
 fn bench_shift_and(b: &mut Bencher) {
     b.iter(|| {
         for _ in 0..10000 {
             let shiftand = ShiftAnd::new(PATTERN);
-            shiftand.find_all(TEXT.iter()).collect::<Vec<usize>>();
+            let _ = shiftand.find_all(TEXT.iter()).collect::<Vec<usize>>();
         }
     });
 }
@@ -238,7 +238,7 @@ fn bench_bndm(b: &mut Bencher) {
     b.iter(|| {
         for _ in 0..10000 {
             let bndm = BNDM::new(PATTERN);
-            bndm.find_all(TEXT).collect::<Vec<usize>>();
+            let _ = bndm.find_all(TEXT).collect::<Vec<usize>>();
         }
     });
 }
@@ -248,7 +248,7 @@ fn bench_bom(b: &mut Bencher) {
     b.iter(|| {
         for _ in 0..10000 {
             let bom = BOM::new(PATTERN);
-            bom.find_all(TEXT).collect::<Vec<usize>>();
+            let _ = bom.find_all(TEXT).collect::<Vec<usize>>();
         }
     });
 }
@@ -258,7 +258,7 @@ fn bench_horspool(b: &mut Bencher) {
     b.iter(|| {
         for _ in 0..10000 {
             let horspool = Horspool::new(PATTERN);
-            horspool.find_all(TEXT).collect::<Vec<usize>>();
+            let _ = horspool.find_all(TEXT).collect::<Vec<usize>>();
         }
     });
 }
@@ -268,7 +268,7 @@ fn bench_kmp(b: &mut Bencher) {
     b.iter(|| {
         for _ in 0..10000 {
             let kmp = KMP::new(PATTERN);
-            kmp.find_all(TEXT.iter()).collect::<Vec<usize>>();
+            let _ = kmp.find_all(TEXT.iter()).collect::<Vec<usize>>();
         }
     });
 }

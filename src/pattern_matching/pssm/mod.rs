@@ -54,7 +54,7 @@ pub const EPSILON: f32 = 1e-5;
 pub const INVALID_MONO: u8 = 255;
 
 /// Represents motif score & location of match
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct ScoredPos {
     pub loc: usize,
     pub sum: f32,
@@ -93,7 +93,7 @@ pub trait Motif {
     fn seqs_to_weights(seqs: &[Vec<u8>], _pseudos: Option<&[f32]>) -> Result<Array2<f32>> {
         let p1 = vec![DEF_PSEUDO; Self::MONO_CT];
         let pseudos = match _pseudos {
-            Some(ref p2) => p2,
+            Some(p2) => p2,
             None => p1.as_slice(),
         };
 
@@ -157,6 +157,10 @@ pub trait Motif {
 
     /// Returns the length of motif
     fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0usize
+    }
 
     /// Returns a representation of the motif using ambiguous codes.
     /// Primarily useful for DNA motifs, where ambiguous codes are
@@ -292,7 +296,7 @@ pub trait Motif {
         let bits = Self::get_bits();
         let scores = self.get_scores();
         let mut tot = 0.0;
-        for row in scores.genrows() {
+        for row in scores.rows() {
             tot += bits - ent(row.iter());
         }
         tot

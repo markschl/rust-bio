@@ -9,7 +9,7 @@ use std::f32;
 use std::f32::{INFINITY, NEG_INFINITY};
 
 /// Position-specific scoring matrix for protein sequences
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct ProtMotif {
     /// matrix holding weights at each position, indexed by [position, base]
     pub scores: Array2<f32>,
@@ -163,7 +163,11 @@ mod tests {
     #[test]
     fn test_info_content() {
         let pssm = ProtMotif::from_seqs(vec![b"AAAA".to_vec()].as_ref(), Some(&[0.0; 20])).unwrap();
-        assert_eq!(pssm.info_content(), ProtMotif::get_bits() * 4.0);
+        assert_relative_eq!(
+            pssm.info_content(),
+            ProtMotif::get_bits() * 4.0,
+            epsilon = f32::EPSILON
+        );
     }
 
     #[test]
@@ -187,20 +191,40 @@ mod tests {
     #[test]
     fn test_mono_err() {
         let pssm = ProtMotif::from_seqs(vec![b"ARGN".to_vec()].as_ref(), None).unwrap();
-        assert_eq!(
+        assert!(matches!(
             pssm.score(b"AAAABAAAAAAAAA"),
             Err(Error::InvalidMonomer { mono: b'B' })
-        );
+        ));
     }
 
     #[test]
     fn test_inconsist_err() {
-        assert_eq!(
+        assert!(matches!(
             ProtMotif::from_seqs(
                 vec![b"NNNNN".to_vec(), b"RRRRR".to_vec(), b"C".to_vec()].as_ref(),
                 Some(&[0.0; 20])
             ),
             Err(Error::InconsistentLen)
-        );
+        ));
+    }
+
+    #[test]
+    fn test_degenerate_consensus_same_bases() {
+        let pssm = ProtMotif::from_seqs(
+            vec![b"QVTYNDSA".to_vec(), b"QVTYNDSA".to_vec()].as_ref(),
+            Some(&[0.0; 20]),
+        )
+        .unwrap();
+        assert_eq!(pssm.degenerate_consensus(), b"QVTYNDSA".to_vec());
+    }
+
+    #[test]
+    fn test_degenerate_consensus_x() {
+        let pssm = ProtMotif::from_seqs(
+            vec![b"QVTYNDSA".to_vec(), b"ASDNYTVQ".to_vec()].as_ref(),
+            Some(&[0.0; 20]),
+        )
+        .unwrap();
+        assert_eq!(pssm.degenerate_consensus(), b"XXXXXXXX".to_vec());
     }
 }
